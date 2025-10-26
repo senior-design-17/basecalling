@@ -10,7 +10,7 @@ This plan lays out a CPU and FPGA real-time basecalling architecture that aims t
 
 ## 1. POD5 parsing, signal normalization, and chunking on CPU
 
-A CPU shall receive POD5 data from the sequencer. The raw signal data and relevant metadata shall be extracted following POD5's format specification. The signal data shall be normalized similar to Dorado's implementation, chunked, and sent to the FPGA via USB or PCIe.
+A CPU shall receive POD5 data from the sequencer. The raw signal data and read_id shall be extracted using Python's POD5 library. The signal data shall be normalized similar to Dorado's implementation, chunked, and sent to the FPGA via USB or PCIe.
 
 The functionality for this shall be implemented in `./cpu/stream_basecaller.py`.
 
