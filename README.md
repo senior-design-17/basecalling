@@ -27,11 +27,11 @@ The FPGA shall receive the following data from each chunk from the CPU:
 ```vhdl
 -- FPGA input interface
 type chunk_input is record
-    read_id       : std_logic_vector(127 downto 0);  -- UUID
-    chunk_id      : std_logic_vector(31 downto 0);
-    actual_length : std_logic_vector(15 downto 0);   -- Real samples (≤10000)
-    is_last       : std_logic;
-    signal_data   : signal_array(0 to 9999);         -- Always 10k, but only use first 'actual_length'
+    read_id       : std_logic_vector(127 downto 0);  -- 128-bit UUID
+    chunk_id      : std_logic_vector(31 downto 0);   -- 32-bit unsigned integer
+    actual_length : std_logic_vector(15 downto 0);   -- 16-bit unsigned integer
+    is_last       : std_logic;                       -- boolean
+    signal_data   : signal_array(0 to 9999);         -- Array of 10,000 float16 values
 end record;
 ```
 
@@ -49,7 +49,7 @@ The FPGA shall implement a CRF (Conditional Random Field) neural network with th
 
 **Input Processing:**
 
-- Input: Raw signal data (10,000 samples, 16-bit signed integers)
+- Input: Raw signal data (10,000 samples, 16-bit floats)
 - Standardization: Apply z-score normalization with mean=94.0, stdev=24.0
 - Input shape: [1, 1, 10000] (batch=1, channels=1, time=10000)
 
