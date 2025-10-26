@@ -4,46 +4,25 @@
 
 ## Overview
 
-The current Dorado basecaller (`dorado basecaller hac pod5s/ --emit-fastq > calls.fastq`) has a complex multi-threaded architecture with pipelines, nodes, runners, and queues. This plan lays out a CPU and FPGA architecture that maintains accuracy and speed.
+Basecalling is the process of converting raw electrical signals from a nanopore sequencer to an ACTG sequence and quality score string.
+
+This plan lays out a CPU and FPGA real-time basecalling architecture that aims to be fast and power-efficient. The high-level workflow is based on the [Dorado](https://github.com/nanoporetech/dorado) basecaller, which converts `.pod5` data to a `.fastq` file.
 
 ## 1. POD5 parsing, signal normalization, and chunking on CPU
 
 A CPU shall receive POD5 data from the sequencer. The raw signal data and relevant metadata shall be extracted following POD5's format specification. The signal data shall be normalized similar to Dorado's implementation, chunked, and sent to the FPGA via USB or PCIe.
+
+The functionality for this shall be implemented in `./cpu/stream_basecaller.py`.
 
 **Relevant Resources:**
 
 - [Python POD5 Package](https://pypi.org/project/pod5/)
 - [Dorado's Normalization Implementation](https://github.com/nanoporetech/dorado/blob/f9443bb8695f075dadc60bf4d1d92d8fd4361668/dorado/read_pipeline/nodes/ScalerNode.cpp#L271)
 
-**Chunking Pseudocode:**
-
-```Python
-CHUNK_SIZE = 10000  # samples per chunk
-OVERLAP = 500
-
-chunks = []
-stride = CHUNK_SIZE - OVERLAP
-for start_idx in range(0, len(signal_int16), stride):
-    end_idx = min(start_idx + CHUNK_SIZE, len(signal_int16))
-    chunk = signal_int16[start_idx:end_idx]
-
-    # Pad last chunk if needed
-    if len(chunk) < CHUNK_SIZE:
-        chunk = pad(chunk, CHUNK_SIZE, pad_value=0)
-
-    chunks.append({
-        'read_id': read_id,
-        'chunk_id': len(chunks),
-        'start_idx': start_idx,
-        'end_idx': end_idx,
-        'is_last': (end_idx >= len(signal_int16)),
-        'signal': chunk
-    })
-```
 
 ## 2. Basecalling Inference and Decoding on FPGA
 
-The FPGA shall receive the following data from each chunks from the CPU:
+The FPGA shall receive the following data from each chunk from the CPU:
 
 ```vhdl
 -- FPGA input interface
@@ -56,9 +35,15 @@ type chunk_input is record
 end record;
 ```
 
-For each chunk, the FPGA shall input the signal data into a neural network.
+For each chunk, the FPGA shall input the signal data into a neural network and decode the output to a sequence and quality score.
+
+The functionality for this shall be implemented in `./fpga/`.
 
 ### 2.1 Neural Network Architecture
+
+**Relevant Resources:**
+- [LSTM on FPGA](https://vast.cs.ucla.edu/sites/default/files/publications/ASP-DAC2017-1352-11.pdf)
+- [Dorado DNA model](./model/dna_r10.4.1_e8.2_400bps_hac@v5.2.0/)
 
 The FPGA shall implement a CRF (Conditional Random Field) neural network with the following architecture:
 
@@ -157,6 +142,8 @@ end record;
 ## 3. Chunk stitching and FASTQ writing on CPU
 
 The CPU shall receive the chunked_output data from the FPGA. The CPU shall stitch all the chunks for each read and write each read to a FASTQ file for secondary analysis.
+
+The functionality for this shall be implemented in `./cpu/stream_basecaller.py`.
 
 ## Testing Strategy
 
