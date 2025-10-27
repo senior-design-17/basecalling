@@ -154,7 +154,8 @@ typedef struct packed {
     logic [4095:0] quality_data; 
     logic is_data; 
     logic valid; 
-} chunk_output; 
+} chunk_output;
+
 ```
 **Output Specifications:**
 
