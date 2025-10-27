@@ -144,7 +144,7 @@ type chunk_output is record
 end record;
 ```
 
-```System Verilog
+```SystemVerilog
 -- FPGA output interface
 typedef struct packed {
     logic [127:0] read_in;
