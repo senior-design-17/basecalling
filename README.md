@@ -35,6 +35,18 @@ type chunk_input is record
 end record;
 ```
 
+```SystemVerilog
+-- FPGA input interface
+ typedef struct packed {
+    logic [127:0] read_id;
+    logic [31:0] chunk_id;
+    logic [15:0] actual_length;
+    logic is_last;
+    logic [15:0] signal_data[0:9999]; 
+ } chunk_input; 
+
+```
+
 For each chunk, the FPGA shall input the signal data into a neural network and decode the output to a sequence and quality score.
 
 The functionality for this shall be implemented in `./fpga/`.
