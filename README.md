@@ -24,17 +24,6 @@ The functionality for this shall be implemented in `./cpu/stream_basecaller.py`.
 
 The FPGA shall receive the following data from each chunk from the CPU:
 
-```vhdl
--- FPGA input interface
-type chunk_input is record
-    read_id       : std_logic_vector(127 downto 0);  -- 128-bit UUID
-    chunk_id      : std_logic_vector(31 downto 0);   -- 32-bit unsigned integer
-    actual_length : std_logic_vector(15 downto 0);   -- 16-bit unsigned integer
-    is_last       : std_logic;                       -- boolean
-    signal_data   : signal_array(0 to 9999);         -- Array of 10,000 float16 values
-end record;
-```
-
 ```SystemVerilog
 -- FPGA input interface
  typedef struct packed {
@@ -130,19 +119,6 @@ The FPGA shall implement greedy decoding to convert neural network scores into b
 #### 2.4 FPGA Output Interface
 
 The FPGA shall output the following data for each processed chunk:
-
-```vhdl
--- FPGA output interface
-type chunk_output is record
-    read_id       : std_logic_vector(127 downto 0);  -- UUID (same as input)
-    chunk_id      : std_logic_vector(31 downto 0);   -- Chunk ID (same as input)
-    sequence_len  : std_logic_vector(15 downto 0);   -- Length of generated sequence
-    sequence_data : std_logic_vector(0 to 4095);     -- Base sequence (A=00, C=01, G=10, T=11)
-    quality_data  : std_logic_vector(0 to 4095);     -- Quality scores (6 bits per score)
-    is_last       : std_logic;                       -- Last chunk flag
-    valid         : std_logic;                       -- Output valid flag
-end record;
-```
 
 ```SystemVerilog
 -- FPGA output interface
