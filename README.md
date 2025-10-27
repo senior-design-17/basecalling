@@ -144,6 +144,18 @@ type chunk_output is record
 end record;
 ```
 
+```System Verilog
+-- FPGA output interface
+typedef struct packed {
+    logic [127:0] read_in;
+    logic [31:0] chunk_id;
+    logic [15:0] sequence_len;
+    logic [4095:0] sequence_data;
+    logic [4095:0] quality_data; 
+    logic is_data; 
+    logic valid; 
+} chunk_output; 
+```
 **Output Specifications:**
 
 - **Sequence**: Binary encoded bases (2 bits per base: A=00, C=01, G=10, T=11)
