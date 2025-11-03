@@ -44,31 +44,32 @@ logic [15:0] signal_buffer[0:9999]; // 10000 × 16-bit values = 20 KB
 ```SystemVerilog
     module fpga_baecaller #(
         BYTE_SIZE_IN = 16, 
-        BYTE_SIZE_OUT = 32
-    )(
-    input wire clk,
-    input logic reset_n,
-    input logic chunk_input_header,
-    output logic chunk_output_header,
-    output wire done
-);
-
-logic [BYTE_SIZE_OUT - 1:0] output_matrix [0:1667][0:384]; 
-
-## CNN --->
-cnn #() cnn_i
-    (
-        
-    ); 
-## LSTM
-lstm #() lstm
-    (
-
+        BYTE_SIZE_OUT = 32,
+        LSTM_LAYERS = 6 
+        )(
+        input wire clk,
+        input logic reset_n,
+        input logic chunk_input_header,
+        output logic chunk_output_header,
+        output wire done
     );
 
-# output
-
-matrix 1667 by 384
+    logic [BYTE_SIZE_OUT - 1:0] output_matrix [0:1667][0:384]; 
+    
+    ## CNN --->
+    cnn #() cnn_i
+        (
+            
+        ); 
+    ## LSTM
+    lstm #() lstm_I
+        (
+    
+        );
+    
+    # output
+    
+    matrix 1667 by 384
 
 ```
 
