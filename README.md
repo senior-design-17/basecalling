@@ -41,6 +41,56 @@ typedef struct packed {
 logic [15:0] signal_buffer[0:9999]; // 10000 × 16-bit values = 20 KB
 ```
 
+```SystemVerilog
+    module fpga_basecaller #(
+        BYTE_SIZE_IN = 16,
+        STREAM_SIZE = 1, 
+        WEIGHT_SIZE = ??,
+        CNN_LAYERS = ??, 
+        BYTE_SIZE_OUT = 32,
+        LSTM_LAYERS = 6 
+        )(
+        input wire clk,
+        input logic reset_n,
+        input logic [WEIGHTS_SIZE - 1 : 0] weights, 
+        input logic chunk_input_header [0:STREAM_SIZE],
+        output logic chunk_output_header,
+        ## Reading 
+        output wire rd_done,
+        #output wire fpga_ready,
+        input wire data_ready
+        ### Writing
+        output wire wd_ready, // MATRIX is ready to be stored in memory 
+        input wire mem_ready,  // MEMORY IS FREE or NOT FULL! can we safely write to memory,
+        ###
+        output logic [BYTE_SIZE_OUT - 1:0] output_matrix [0:1667][0:384]
+    );
+
+    logic [$clog2(FIFO_SIZE_IN)- 0: 0] fifo_in_mem [0:FIFO_SIZE_IN];
+    logic [$clog2(FIFO_SIZE_out)- 0: 0] fifo_out_mem [0:FIFO_SIZE_OUT]; 
+
+    logic [BYTE_SIZE_OUT - 1:0] output_matrix [0:1667][0:384]; 
+    
+    ## CNN --->
+    cnn #( .WEIGHT_SIZE(WEIGHT_SIZE),     ) cnn_i
+        (
+           input wire clk,
+           input wire rst_n,
+           input logic [WEIGHT_SIZE - 1:0]  weights
+        ); 
+    ## LSTM
+    lstm #(.LSTM_LAYERS (LSTM_LAYERS ) lstm_i
+        (
+            input wire clk,
+            input wire rst_n
+        );
+    
+    # output
+    
+    matrix 1667 by 384
+
+```
+
 **PCIe Transfer Process:**
 
 1. CPU writes normalized signal data to `signal_buffer` (up to `actual_length` samples)
