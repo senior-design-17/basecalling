@@ -1,0 +1,11 @@
+# Weight Metadata
+# ================
+
+shape: [16]
+dtype: torch.float32
+numel: 16
+min: -0.8623145222663879
+max: 0.6676738262176514
+mean: 0.008081916719675064
+std: 0.37333667278289795
+memory_size_bytes: 64
