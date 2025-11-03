@@ -48,6 +48,8 @@ module fpga_basecaller #(
 
     logic [BYTE_SIZE_OUT - 1:0] output_matrix_internal [0:1667][0:384]; 
     
+    reg ce = 1'b1; 
+    
     
     // Input processing  
     
@@ -55,16 +57,52 @@ module fpga_basecaller #(
     // Convolutional Stack 
     
     
-    // LSTM Stack 
-    
-    
-    // CNN --->
-    cnn #( .WEIGHT_SIZE(WEIGHT_SIZE)) cnn_i
+      cnn #( .WEIGHT_SIZE(WEIGHT_SIZE)) cnn_i_1
         (
            .clk (clk),
-           .rst_n(rst_n),
-           .weights (weights)
+           .ce(ce),
+           .global_rst(rst_n),
+           .weights (weights), 
+           .activation(activation),
+           .data_out(data_out), 
+           .valid_op(valid_op),
+           .end_op(end_op), 
+           .conv_out(conv_out), 
+           .conv_valid(conv_valid), 
+           .conv_end(conv_end)
         ); 
+        
+        cnn #( .WEIGHT_SIZE(WEIGHT_SIZE)) cnn_i_2
+            (
+               .clk (clk),
+               .ce(ce), 
+               .global_rst(rst_n),
+               .weights (weights), 
+               .activation(activation),
+               .data_out(data_out), 
+               .valid_op(valid_op),
+               .end_op(end_op), 
+               .conv_out(conv_out), 
+               .conv_valid(conv_valid), 
+               .conv_end(conv_end)
+            ); 
+        
+        cnn_tanh #( .WEIGHT_SIZE(WEIGHT_SIZE)) cnn_i_3
+            (
+               .clk (clk),
+               .ce(ce), 
+               .global_rst(rst_n),
+               .weights (weights), 
+               .activation(activation),
+               .data_out(data_out), 
+               .valid_op(valid_op),
+               .end_op(end_op), 
+               .conv_out(conv_out), 
+               .conv_valid(conv_valid), 
+               .conv_end(conv_end)
+            ); 
+    // LSTM Stack 
+    
     // LSTM
     lstm #(.LSTM_LAYERS (LSTM_LAYERS) ) lstm_i
         (

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 `define FIXED_POINT 1
-module cnn #(
+module cnn_tanh #(
     parameter n = 9'd224,  //size of the input image/activation map
     parameter k = 9'h003,  //size of the convolution window
     parameter p = 9'h002,  //size of the pooling window
@@ -64,11 +64,13 @@ module cnn #(
     
     assign valid_ip = valid_conv && (!end_conv);
     
- (*DONT_TOUCH = "YES"*) relu #(.N(N)) act(                             // ReLu Activation function
-            .din_relu(conv_op_pipeline_reg),
-            .dout_relu(relu_op)
-        );
-        
+tanh_lut #()(
+    .clk(clk),
+    .rst(rst),
+    .phase (phase),
+    .tanh(tanh)
+    );
+    
     
     assign pooler_ip = act_type ? tanh_op : relu_op_pipeline_reg; //alternatively you could use macros to save resources when using ReLu
     
