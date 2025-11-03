@@ -42,13 +42,16 @@ logic [15:0] signal_buffer[0:9999]; // 10000 × 16-bit values = 20 KB
 ```
 
 ```SystemVerilog
-    module fpga_baecaller #(
-        BYTE_SIZE_IN = 16, 
+    module fpga_basecaller #(
+        BYTE_SIZE_IN = 16,
+        WEIGHT_SIZE = ??,
+        CNN_LAYERS = ??, 
         BYTE_SIZE_OUT = 32,
         LSTM_LAYERS = 6 
         )(
         input wire clk,
         input logic reset_n,
+        input logic [WEIGHTS_SIZE - 1 : 0] weights, 
         input logic chunk_input_header,
         output logic chunk_output_header,
         output wire done
@@ -57,12 +60,14 @@ logic [15:0] signal_buffer[0:9999]; // 10000 × 16-bit values = 20 KB
     logic [BYTE_SIZE_OUT - 1:0] output_matrix [0:1667][0:384]; 
     
     ## CNN --->
-    cnn #() cnn_i
+    cnn #( .WEIGHT_SIZE(WEIGHT_SIZE),     ) cnn_i
         (
-            
+           input wire clk,
+           input wire rst_n,
+           input logic [WEIGHT_SIZE - 1:0]  weights
         ); 
     ## LSTM
-    lstm #() lstm_I
+    lstm #(.LSTM_LAYERS (LSTM ) lstm_i
         (
     
         );
