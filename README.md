@@ -67,9 +67,10 @@ logic [15:0] signal_buffer[0:9999]; // 10000 × 16-bit values = 20 KB
            input logic [WEIGHT_SIZE - 1:0]  weights
         ); 
     ## LSTM
-    lstm #(.LSTM_LAYERS (LSTM ) lstm_i
+    lstm #(.LSTM_LAYERS (LSTM_LAYERS ) lstm_i
         (
-    
+            input wire clk,
+            input wire rst_n
         );
     
     # output
