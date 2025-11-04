@@ -64,13 +64,13 @@ module cnn_tanh #(
     
     assign valid_ip = valid_conv && (!end_conv);
     
-tanh_lut #()(
-    .clk(clk),
-    .rst(rst),
-    .phase (phase),
-    .tanh(tanh)
-    );
-    
+    tanh_lut #()(
+        .clk(clk),
+        .rst(rst),
+        .phase (phase),
+        .tanh(tanh)
+        );
+        
     
     assign pooler_ip = act_type ? tanh_op : relu_op_pipeline_reg; //alternatively you could use macros to save resources when using ReLu
     

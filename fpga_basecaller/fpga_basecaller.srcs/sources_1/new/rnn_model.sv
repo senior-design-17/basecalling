@@ -66,6 +66,53 @@ module rnn_model #(
     logic signed [13:0] temp1;
     logic signed [13:0] temp2;
     logic signed [13:0] temp3;
-    logic signed [13:0] temp4;         
+    logic signed [13:0] temp4;    
+    
+    
+    //===========================================================
+    // Module Instantiations 
+    //===========================================================
+    sigmoid #(.WIDTH(14)) sigmoid_inst (
+        .clk(clk), 
+        .start(start_sig), 
+        .din(sig_in),
+        .done(done_sig), 
+        .dout(sig_out) 
+    ); 
+    
+    rnn_lstm_cell #(
+        .M(M),
+        .M2(M2),
+        .M4(M4)    
+     ) lstm_i_1 (
+        .clk(clk), 
+        .rst_n(rst_n), 
+        .start(start_lstm1), 
+        .done(done_lstm1),
+        .w_all(w_all), 
+        .b_all(b_all), 
+        .h_in(h), 
+        .c_in(c), 
+        .inputs(inputs), 
+        .h_out(h1_next), 
+        .c_out(c1_next) 
+     );
      
+    rnn_lstm_cell #(
+        .M(M),
+        .M2(M2),
+        .M4(M4)    
+     ) lstm_i_2 (
+        .clk(clk), 
+        .rst_n(rst_n), 
+        .start(start_lstm2), 
+        .done(done_lstm2),
+        .w_all(w_all2), 
+        .b_all(b_all2), 
+        .h_in(h2), 
+        .c_in(c2), 
+        .inputs(inputs2), 
+        .h_out(h2_next), 
+        .c_out(c2_next) 
+     );
 endmodule
