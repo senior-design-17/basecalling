@@ -47,4 +47,22 @@ module rnn_lstm_cell #(
         output logic signed [13:0] c_out [0:M-1]
        
     );
+    
+    logic signed [13:0] gates [0:M4-1]; 
+    logic signed [13:0] fi [0:M-1]; 
+    logic signed [13:0] fi2 [0:M-1]; 
+    logic signed [13:0] fC [0:M-1]; 
+    
+    logic signed [13:0] ff [0:M-1]; 
+    logic signed [13:0] ff2 [0:M-1];
+    
+    logic signed [13:0] fo [0:M-1]; 
+    logic signed [13:0] fo2 [0:M-1]; 
+    
+    logic signed [13:0] temp1; 
+    
+    logic signed [13:0] temp2; 
+    
+    logic signed [13:0] arr [0:M-1];  
+    
 endmodule

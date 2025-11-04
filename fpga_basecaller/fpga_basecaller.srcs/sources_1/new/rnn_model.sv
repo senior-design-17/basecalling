@@ -69,6 +69,45 @@ module rnn_model #(
     logic signed [13:0] temp4;    
     
     
+    typedef enum logic [3:0] {
+        IDLE,
+        DENSE_1, 
+        DENSE_2, 
+        DENSE_3, 
+        LSTM_INIT, 
+        LSTM_LOOP, 
+        LSTM_CALL_1, 
+        LSTM_CALL_2, 
+        LSTM_sTORE, 
+        DENSE_OUT, 
+        ARGMAX, 
+        FINISH
+    } fsm_state_t; 
+    
+    fsm_state_t state, next_state; 
+    
+    // oop counters 
+    
+    logic [$clog2(N) - 1:0] i_cnt; 
+    logic [$clog2(M) - 1:0] j_cnt;
+    logic [$clog2(S) - 1:0] j_s_cnt;
+    
+    logic start_sig, done_sig;
+    
+    logic signed [13:0] sign_in, sig_out; 
+    
+    logic start_lstm1, done_lstm1;
+    logic start_lstm2, done_lstm2;
+    
+    logic signed [13:0] h1_next [0:M-1]; 
+    logic signed [13:0] c1_next [0:M-1];
+    logic signed [13:0] h2_next [0:M-1];
+    logic signed [13:0] c2_next [0:M-1];
+    
+    //-- Finite State Machine ---
+    
+    
+    
     //===========================================================
     // Module Instantiations 
     //===========================================================
