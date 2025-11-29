@@ -1,4 +1,6 @@
-# CPU Bridge between Sequencer and FGPA accoridng to the interface below
+# CPU Bridge between Sequencer and FGPA 
+
+According to the interface below
 
 ```SystemVerilog
 -- FPGA PCIe input interface (memory-mapped)
