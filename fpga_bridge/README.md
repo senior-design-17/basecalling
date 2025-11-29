@@ -1,4 +1,4 @@
-# CPU Bridge between Sequencer and FGPA 
+# \[Untested Vibe Code\] CPU Bridge between Sequencer and FGPA 
 
 According to the interface below, Gemini provided two different implementations
 
