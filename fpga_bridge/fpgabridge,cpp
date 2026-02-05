@@ -1,0 +1,170 @@
+#include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cstring>
+#include <algorithm>
+#include <string>
+#include <random> // For generating a dummy Read ID
+
+// ==========================================
+// 1. Hardware Definitions (Must Match SV)
+// ==========================================
+
+// Constants from your SystemVerilog
+constexpr size_t MAX_SAMPLES_PER_CHUNK = 10000;
+constexpr size_t BYTES_PER_SAMPLE = 2; // 16-bit
+constexpr size_t BUFFER_SIZE_BYTES = MAX_SAMPLES_PER_CHUNK * BYTES_PER_SAMPLE; // 20KB
+
+// Represents the 128-bit Read ID
+struct uint128_t {
+    uint64_t lo;
+    uint64_t hi;
+};
+
+// The Header Struct
+// __attribute__((packed)) prevents the compiler from adding padding bytes,
+// ensuring accurate alignment with the FPGA wire definitions.
+struct __attribute__((packed)) ChunkInputHeader {
+    uint128_t read_id;      // 128 bits
+    uint32_t chunk_id;      // 32 bits
+    uint16_t actual_length; // 16 bits (Count of samples)
+    uint32_t data_length;   // 32 bits (Count of bytes)
+    uint8_t is_last;        // 1 bit logic mapped to uint8_t
+    uint8_t data_ready;     // 1 bit logic mapped to uint8_t
+};
+
+// ==========================================
+// 2. File Parsing Abstraction
+// ==========================================
+
+/**
+ * Reads raw 16-bit signal data from .fast5 or .pod5 files.
+ * * NOTE: Implementing the actual HDF5/Arrow parsing requires linking against 
+ * libhdf5 or libpod5. This is a placeholder for the logic.
+ */
+std::vector<int16_t> load_signal_data(const std::string& filename) {
+    std::vector<int16_t> signal;
+    
+    std::cout << "[Disk] Loading file: " << filename << "..." << std::endl;
+
+    if (filename.find(".fast5") != std::string::npos) {
+        // Pseudo-code for HDF5:
+        // H5File file(filename, H5F_ACC_RDONLY);
+        // DataSet dataset = file.openDataSet("/Raw/Reads/Read_123/Signal");
+        // dataset.read(signal_buffer, PredType::NATIVE_INT16);
+        
+        // Simulating 25,000 samples for demonstration
+        signal.resize(25000); 
+        std::fill(signal.begin(), signal.end(), 0xAB); // Dummy data
+    } 
+    else if (filename.find(".pod5") != std::string::npos) {
+        // Pseudo-code for Pod5:
+        // auto reader = pod5::Reader(filename);
+        // auto batch = reader.read_batch();
+        // signal = batch.signal;
+        
+        signal.resize(12000); 
+        std::fill(signal.begin(), signal.end(), 0xCD); // Dummy data
+    }
+    
+    std::cout << "[Disk] Loaded " << signal.size() << " samples." << std::endl;
+    return signal;
+}
+
+// ==========================================
+// 3. The FPGA Bridge (The Core Logic)
+// ==========================================
+
+class FpgaBridge {
+private:
+    uint8_t* pcie_bar_base; // Pointer to the mmap'd PCIe region
+
+public:
+    // In a real driver, you would pass mmap pointer here
+    FpgaBridge(void* mapped_address) : pcie_bar_base(static_cast<uint8_t*>(mapped_address)) {}
+
+    void send_read(const std::vector<int16_t>& signal, uint128_t read_id) {
+        size_t total_samples = signal.size();
+        size_t samples_processed = 0;
+        uint32_t chunk_counter = 0;
+
+        std::cout << "[FPGA] Starting transfer for Read ID " << std::hex << read_id.lo << "..." << std::endl;
+
+        while (samples_processed < total_samples) {
+            // 1. Calculate Chunk Boundaries
+            size_t remaining = total_samples - samples_processed;
+            size_t chunk_samples = std::min(remaining, MAX_SAMPLES_PER_CHUNK);
+            bool is_last_chunk = (samples_processed + chunk_samples) == total_samples;
+
+            // 2. Calculate Addresses
+            // Address = Base + (Chunk_ID * Buffer_Size)
+            // Note: Ensure your hardware handles wrapping if chunk_id gets too large!
+            size_t offset = chunk_counter * BUFFER_SIZE_BYTES; 
+            
+            // Pointers to the specific locations in PCIe memory
+            // Assuming Header is at Offset 0 relative to the chunk, or handled separately.
+            // *CRITICAL*: Based on your SV, the buffer is at BASE + (id * size).
+            // Usually, the Header is written to a Control Register (BAR 0) 
+            // and Data to a Memory Region (BAR 1 or Offset in BAR 0).
+            // For this example, I will assume Header sits *before* the buffer or at a specific register.
+            
+            volatile uint16_t* data_dest = reinterpret_cast<uint16_t*>(pcie_bar_base + offset + sizeof(ChunkInputHeader)); 
+            volatile ChunkInputHeader* header_dest = reinterpret_cast<ChunkInputHeader*>(pcie_bar_base + offset);
+
+            // 3. WRITE DATA (Payload)
+            // We copy data BEFORE setting the header flag to avoid race conditions.
+            // memcpy is usually fine, but for MMIO, explicit loops or specialized copy_to_io is safer 
+            // to ensure ordering. Here we use memcpy for brevity.
+            std::memcpy((void*)data_dest, &signal[samples_processed], chunk_samples * BYTES_PER_SAMPLE);
+
+            // 4. PREPARE HEADER
+            ChunkInputHeader header;
+            header.read_id = read_id;
+            header.chunk_id = chunk_counter;
+            header.actual_length = static_cast<uint16_t>(chunk_samples);
+            header.data_length = static_cast<uint32_t>(chunk_samples * BYTES_PER_SAMPLE);
+            header.is_last = is_last_chunk ? 1 : 0;
+            header.data_ready = 1; // The "Go" signal
+
+            // 5. WRITE HEADER (Trigger)
+            // Writing this struct commits the transaction to the FPGA
+            std::memcpy((void*)header_dest, &header, sizeof(ChunkInputHeader));
+            
+            // Optional: Memory Barrier to ensure write completion
+            // std::atomic_thread_fence(std::memory_order_release);
+
+            std::cout << "  -> Sent Chunk " << chunk_counter 
+                      << ": " << chunk_samples << " samples " 
+                      << (is_last_chunk ? "[END]" : "") << std::endl;
+
+            // 6. Advance Counters
+            samples_processed += chunk_samples;
+            chunk_counter++;
+        }
+    }
+};
+
+// ==========================================
+// 4. Main Execution
+// ==========================================
+
+int main() {
+    // 1. Simulate PCIe Memory (Usually done via mmap on /dev/uio0)
+    // Allocating large enough dummy buffer for simulation
+    std::vector<uint8_t> dummy_pcie_space(1024 * 1024); // 1MB PCIe space
+    
+    // 2. Initialize Bridge
+    FpgaBridge bridge(dummy_pcie_space.data());
+
+    // 3. Load Data (from .fast5 or .pod5)
+    std::string filename = "run_id_test.fast5";
+    std::vector<int16_t> raw_signal = load_signal_data(filename);
+
+    // 4. Create a unique Read ID (UUID substitute)
+    uint128_t my_read_id = {0xDEADBEEF, 0xCAFEBABE};
+
+    // 5. Blast it to the FPGA
+    bridge.send_read(raw_signal, my_read_id);
+
+    return 0;
+}
